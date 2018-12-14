@@ -11,3 +11,12 @@ categories = ["encoding", "data-structures", "memory-management"]
 
 [dependencies]
 smallvec = "0.6"
+
+[dev-dependencies]
+quickcheck = "0.6"
+# TODO(rw): look into moving to criterion.rs
+bencher = "0.1.5"
+
+[[bench]]
+name = "flatbuffers_benchmarks"
+harness = false

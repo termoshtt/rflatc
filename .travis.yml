@@ -1,0 +1,11 @@
+language: rust
+sudo: false
+dist: trusty
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+script:
+  - cargo test -v

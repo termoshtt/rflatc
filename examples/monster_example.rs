@@ -1,6 +1,6 @@
 extern crate flatbuffers;
 
-#[path = "../../monster_test_generated.rs"]
+#[path = "../fbs/monster_test_generated.rs"]
 mod monster_test_generated;
 pub use monster_test_generated::my_game;
 
@@ -12,7 +12,7 @@ fn main() {
     f.read_to_end(&mut buf).expect("file reading failed");
 
     let monster = my_game::example::get_root_as_monster(&buf[..]);
-    println!("{}", monster.hp());     // `80`
-    println!("{}", monster.mana());   // default value of `150`
+    println!("{}", monster.hp()); // `80`
+    println!("{}", monster.mana()); // default value of `150`
     println!("{:?}", monster.name()); // Some("MyMonster")
 }

@@ -89,7 +89,8 @@ fn create_serialized_example_with_generated_code(builder: &mut flatbuffers::Flat
     my_game::example::finish_monster_buffer(builder, mon);
 }
 
-fn main() {
+#[test]
+fn alloc_check() {
     // test the allocation tracking:
     {
         let before = A.n_allocs();

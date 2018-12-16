@@ -7,5 +7,9 @@ rust:
   - beta
   - nightly
 
+before_script:
+  - ./ci/install_flatc.sh
+
 script:
   - cargo test -v
+  - cd ./flatc_build_example; cargo test -v

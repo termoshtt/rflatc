@@ -11,4 +11,13 @@ fn main() {
     if !st.success() {
         panic!("flatc failed: {}", st.code().unwrap());
     }
+
+    let st = Command::new("rustfmt")
+        .arg("addressbook_generated.rs")
+        .current_dir(out_dir)
+        .status()
+        .expect("rustfmt cannot start");
+    if !st.success() {
+        panic!("rustfmt failed: {}", st.code().unwrap());
+    }
 }

@@ -1,7 +1,7 @@
 rust-fbs
 ========
 
-[![Build Status](https://travis-ci.org/termoshtt/rust-fbs.svg?branch=master)](https://travis-ci.org/termoshtt/rust-fbs)
+[![Build Status](https://travis-ci.org/termoshtt/rust-flatbuffers.svg?branch=master)](https://travis-ci.org/termoshtt/rust-flatbuffers)
 
 Fork of the Rust part of [Official FlatBuffers implementation](https://github.com/google/flatbuffers)
 

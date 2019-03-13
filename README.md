@@ -3,7 +3,7 @@ rust-fbs
 
 [![Build Status](https://travis-ci.org/termoshtt/rust-fbs.svg?branch=master)](https://travis-ci.org/termoshtt/rust-fbs)
 
-Fork of [Official FlatBuffers implementation](https://github.com/google/flatbuffers) in Rust.
+Fork of the Rust part of [Official FlatBuffers implementation](https://github.com/google/flatbuffers)
 
 Licensing
 ----------

@@ -12,4 +12,3 @@ before_script:
 
 script:
   - cargo test -v
-  - cd ./flatc_build_example; cargo test -v

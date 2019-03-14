@@ -1,0 +1,6 @@
+namespace addressbook;
+
+table Person {
+  name:string;
+  age:int;
+}

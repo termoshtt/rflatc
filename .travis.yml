@@ -7,5 +7,9 @@ rust:
   - beta
   - nightly
 
+before_script:
+  - rustup component add rustfmt
+
 script:
   - cargo test -v
+  - cd ./flatc_build_example; cargo test -v

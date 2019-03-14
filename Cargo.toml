@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+  "flatbuffers",
+  "flatc_build_example",
+]

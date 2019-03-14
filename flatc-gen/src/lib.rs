@@ -6,15 +6,18 @@ use quote::quote;
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::path::*;
+use std::path::PathBuf;
 use std::process::Command;
+use syn::parse_macro_input;
 
 #[proc_macro]
-pub fn flatc_gen(path: TokenStream) -> TokenStream {
+pub fn flatc_gen(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as syn::LitStr);
+
     // Validate input file path
-    let path = PathBuf::from(path.to_string());
+    let path = PathBuf::from(input.value());
     if !path.exists() {
-        panic!("Flatbuffer file '{}' does not exist.");
+        panic!("Flatbuffer file '{}' does not exist.", path.display());
     }
     let stem = path
         .file_stem()

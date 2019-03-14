@@ -7,5 +7,8 @@ edition = "2018"
 [dependencies.flatbuffers]
 path = ".."
 
+[dependencies.flatc-gen]
+path = "../flatc-gen"
+
 [build-dependencies]
 cmake = "0.1"

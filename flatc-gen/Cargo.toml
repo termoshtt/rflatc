@@ -12,3 +12,7 @@ quote = "0.6"
 proc-macro2 = "0.4"
 cmake = "0.1"
 log = "*"
+
+[dependencies.syn]
+version = "0.15"
+features = ["full"]

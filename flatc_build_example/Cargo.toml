@@ -1,11 +1,11 @@
 [package]
-name = "flatc-build"
+name = "flatc-build-example"
 version = "0.1.0"
 authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
 edition = "2018"
 
 [dependencies.flatbuffers]
-path = ".."
+path = "../flatbuffers"
 
 [dependencies.flatc-gen]
 path = "../flatc-gen"

@@ -6,6 +6,8 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Command, Output};
+use std::thread::sleep;
+use std::time::Duration;
 use syn::parse_macro_input;
 
 fn check_output(output: &Output, command_name: &str) {
@@ -55,6 +57,27 @@ pub fn flatc_gen(input: TokenStream) -> TokenStream {
         .expect("Cannot get global cache directory")
         .join("flatc-gen");
     fs::create_dir_all(&work_dir).expect("Failed to create cache directory");
+    let lock_file = work_dir.join("flatc-gen.lock");
+    {
+        fs::File::create(&lock_file).expect("Cannot create lock file");
+    }
+
+    // inter-process exclusion (parallel cmake will cause problems)
+    let mut count = 0;
+    let _lock = loop {
+        match file_lock::FileLock::lock(lock_file.to_str().unwrap(), true, true) {
+            Ok(lock) => break lock,
+            Err(err) => {
+                count += 1;
+                eprintln!("Waiting lock of {}, {:?}", lock_file.display(), err);
+            }
+        };
+        // Try 30s to get lock
+        if count > 30 {
+            panic!("Cannot get lock of {} in 30s", lock_file.display());
+        }
+        sleep(Duration::from_secs(1));
+    };
 
     // Download flatbuffers
     //

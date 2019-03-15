@@ -14,6 +14,19 @@ pub fn flatc_gen(input: TokenStream) -> TokenStream {
 
     // Validate input file path
     let path = PathBuf::from(input.value());
+    let path = if path.is_relative() {
+        let src = input.span().source_file(); // XXX This needs `RUSTFLAG=--cfg procmacro2_semver_exempt`
+                                              // see https://docs.rs/proc-macro2/*/proc_macro2/#unstable-features
+        if !src.is_real() {
+            panic!("flatc_gen! with relative path is supported only from real file and nightly compiler");
+        }
+        let src = src.path();
+        let basedir = src.parent().unwrap();
+        basedir.join(path)
+    } else {
+        path
+    };
+
     if !path.exists() {
         panic!("Flatbuffer file '{}' does not exist.", path.display());
     }

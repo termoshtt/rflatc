@@ -1,0 +1,19 @@
+[package]
+name = "flatc-gen"
+version = "0.1.0"
+authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "0.6"
+proc-macro2 = "0.4"
+log = "*"
+dirs = "*"
+file-lock = "1.1"
+
+[dependencies.syn]
+version = "0.15"
+features = ["full"]

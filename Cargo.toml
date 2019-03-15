@@ -3,5 +3,5 @@
 members = [
   "flatbuffers",
   "flatc-gen",
-  "flatc_build_example",
+  "flatc-gen-example",
 ]

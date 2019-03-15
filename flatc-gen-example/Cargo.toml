@@ -1,5 +1,5 @@
 [package]
-name = "flatc-build-example"
+name = "flatc-gen-example"
 version = "0.1.0"
 authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
 edition = "2018"

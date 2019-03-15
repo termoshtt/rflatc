@@ -5,8 +5,23 @@ use proc_macro::TokenStream;
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Output};
 use syn::parse_macro_input;
+
+fn check_output(output: &Output, command_name: &str) {
+    if !output.status.success() {
+        let out = String::from_utf8(output.stdout.clone()).expect("Failed to parse output");
+        let err = String::from_utf8(output.stderr.clone()).expect("Failed to parse error output");
+        eprintln!("=== {} output ===", command_name);
+        eprintln!("{}", out);
+        eprintln!("{}", err);
+        panic!(
+            "{} failed with error code: {}",
+            command_name,
+            output.status.code().unwrap()
+        );
+    }
+}
 
 #[proc_macro]
 pub fn flatc_gen(input: TokenStream) -> TokenStream {
@@ -57,22 +72,19 @@ pub fn flatc_gen(input: TokenStream) -> TokenStream {
     }
 
     // Build flatbuffers
-    let st = Command::new("cmake")
+    let output = Command::new("cmake")
         .args(&["-Bbuild", "-H."])
         .current_dir(&fbs_repo)
-        .status()
+        .output()
         .expect("cmake not found");
-    if !st.success() {
-        panic!("cmake failed with error code: {}", st.code().unwrap());
-    }
-    let st = Command::new("cmake")
+    check_output(&output, "cmake");
+
+    let output = Command::new("cmake")
         .args(&["--build", "build", "--target", "flatc"])
         .current_dir(&fbs_repo)
-        .status()
+        .output()
         .expect("cmake not found");
-    if !st.success() {
-        panic!("cmake failed with error code: {}", st.code().unwrap());
-    }
+    check_output(&output, "cmake");
 
     let flatc = fbs_repo.join("build/flatc");
 

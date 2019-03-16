@@ -1,4 +1,4 @@
-Flatbuffers for Rust
+rfbs
 ========
 
 [![Build Status](https://travis-ci.org/termoshtt/rust-flatbuffers.svg?branch=master)](https://travis-ci.org/termoshtt/rust-flatbuffers)

@@ -5,3 +5,5 @@ authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+combine = "3"
+combine-language = "3"

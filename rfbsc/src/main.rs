@@ -1,4 +1,6 @@
 //! FlatBuffers compiler
+//!
+//! - [Grammar of the schema language](https://google.github.io/flatbuffers/flatbuffers_grammar.html)
 
 use combine::{char::*, parser::Parser, *};
 
@@ -18,6 +20,7 @@ where
         .map(|(l, a)| format!("{}{}", l, a.iter().collect::<String>()))
 }
 
+/// metadata = [ ( commasep( ident [ : single_value ] ) ) ]
 fn metadata<I>() -> impl Parser<Input = I, Output = Metadata>
 where
     I: Stream<Item = char>,
@@ -31,6 +34,7 @@ where
 enum Stmt {
     Namespace(Vec<Identifier>),
     Field(Identifier, Type, Option<Scalar>, Metadata),
+    Root(Identifier),
 }
 
 /// namespace_decl = namespace ident ( . ident )* ;
@@ -65,6 +69,20 @@ where
         .map(|((id, ty), metadata)| Stmt::Field(id, ty, None, metadata))
 }
 
+/// root_decl = root_type ident ;
+fn root<I>() -> impl Parser<Input = I, Output = Stmt>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    string("root_type")
+        .skip(spaces())
+        .and(identifier())
+        .skip(spaces())
+        .skip(token(';'))
+        .map(|(_, id)| Stmt::Root(id))
+}
+
 fn main() {
     let result = identifier().parse("vim");
     println!("{:?}", result);
@@ -73,5 +91,7 @@ fn main() {
     let result = namespace().parse("namespace mad.magi;");
     println!("{:?}", result);
     let result = field().parse("a : uint32_t;");
+    println!("{:?}", result);
+    let result = root().parse("root_type vim;");
     println!("{:?}", result);
 }

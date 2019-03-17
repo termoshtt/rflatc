@@ -2,9 +2,12 @@
 
 use combine::{char::*, parser::Parser, *};
 
-#[derive(Debug)]
-struct Identifier(String);
+type Identifier = String;
+type Type = String;
+type Scalar = ();
+type Metadata = Option<Vec<String>>;
 
+/// ident = [a-zA-Z_][a-zA-Z0-9_]*
 fn identifier<I>() -> impl Parser<Input = I, Output = Identifier>
 where
     I: Stream<Item = char>,
@@ -12,25 +15,54 @@ where
 {
     letter()
         .and(many::<Vec<char>, _>(alpha_num().or(char('_'))))
-        .map(|(l, a)| Identifier(format!("{}{}", l, a.iter().collect::<String>())))
+        .map(|(l, a)| format!("{}{}", l, a.iter().collect::<String>()))
+}
+
+fn metadata<I>() -> impl Parser<Input = I, Output = Metadata>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    // FIXME
+    value(None)
 }
 
 #[derive(Debug)]
 enum Stmt {
-    Namespace(Identifier),
+    Namespace(Vec<Identifier>),
+    Field(Identifier, Type, Option<Scalar>, Metadata),
 }
 
+/// namespace_decl = namespace ident ( . ident )* ;
 fn namespace<I>() -> impl Parser<Input = I, Output = Stmt>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     string("namespace")
-        .and(spaces())
+        .skip(spaces())
+        .and(sep_by1::<Vec<Identifier>, _, _>(identifier(), token('.')))
+        .skip(spaces())
+        .skip(token(';'))
+        .map(|(_, id)| Stmt::Namespace(id))
+}
+
+/// field_decl = ident : type [ = scalar ] metadata ;
+fn field<I>() -> impl Parser<Input = I, Output = Stmt>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    identifier()
+        .skip(spaces())
+        .skip(token(':'))
+        .skip(spaces())
         .and(identifier())
-        .and(spaces())
-        .and(char(';'))
-        .map(|(((_, id), _), _)| Stmt::Namespace(id))
+        .skip(spaces())
+        .and(metadata())
+        .skip(spaces())
+        .skip(token(';'))
+        .map(|((id, ty), metadata)| Stmt::Field(id, ty, None, metadata))
 }
 
 fn main() {
@@ -38,6 +70,8 @@ fn main() {
     println!("{:?}", result);
     let result = identifier().parse("emacs_vim");
     println!("{:?}", result);
-    let result = namespace().parse("namespace Vim;");
+    let result = namespace().parse("namespace mad.magi;");
+    println!("{:?}", result);
+    let result = field().parse("a : uint32_t;");
     println!("{:?}", result);
 }

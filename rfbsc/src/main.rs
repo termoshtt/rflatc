@@ -1,57 +1,43 @@
 //! FlatBuffers compiler
 
 use combine::{char::*, parser::Parser, *};
-use combine_language::*;
 
-fn flatc_env<I>() -> LanguageEnv<'static, I>
+#[derive(Debug)]
+struct Identifier(String);
+
+fn identifier<I>() -> impl Parser<Input = I, Output = Identifier>
 where
-    I: 'static + combine::stream::Stream<Item = char>,
+    I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    LanguageEnv::new(LanguageDef {
-        ident: Identifier {
-            start: letter(),
-            rest: alpha_num(),
-            reserved: [
-                "include",
-                "namespace",
-                "attribute",
-                "table",
-                "struct",
-                "enum",
-                "union",
-                "root_type",
-                "rpc_service",
-                "file_extension",
-                "file_identifier",
-            ]
-            .iter()
-            .map(|x| (*x).into())
-            .collect(),
-        },
-        op: Identifier {
-            start: satisfy(|c| ":=".chars().any(|x| x == c)),
-            rest: satisfy(|c| ":=".chars().any(|x| x == c)),
-            reserved: Vec::new(),
-        },
-        comment_start: string("/*").map(|_| ()),
-        comment_end: string("*/").map(|_| ()),
-        comment_line: string("//").map(|_| ()),
-    })
+    letter()
+        .and(many::<Vec<char>, _>(alpha_num().or(char('_'))))
+        .map(|(l, a)| Identifier(format!("{}{}", l, a.iter().collect::<String>())))
 }
 
 #[derive(Debug)]
 enum Stmt {
-    Namespace(String),
+    Namespace(Identifier),
+}
+
+fn namespace<I>() -> impl Parser<Input = I, Output = Stmt>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    string("namespace")
+        .and(spaces())
+        .and(identifier())
+        .and(spaces())
+        .and(char(';'))
+        .map(|(((_, id), _), _)| Stmt::Namespace(id))
 }
 
 fn main() {
-    let env = flatc_env();
-    let mut ns = string("namespace")
-        .and(spaces())
-        .and(env.identifier())
-        .and(char(';'))
-        .map(|((_, id), _)| Stmt::Namespace(id));
-    let result = ns.easy_parse("namespace Vim;");
+    let result = identifier().parse("vim");
+    println!("{:?}", result);
+    let result = identifier().parse("emacs_vim");
+    println!("{:?}", result);
+    let result = namespace().parse("namespace Vim;");
     println!("{:?}", result);
 }

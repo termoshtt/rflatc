@@ -5,7 +5,7 @@
 use combine::{char::*, parser::Parser, *};
 
 type Identifier = String;
-type Scalar = ();
+type Scalar = Option<String>;
 type Metadata = Option<Vec<String>>;
 
 /// ident = [a-zA-Z_][a-zA-Z0-9_]*
@@ -19,7 +19,7 @@ where
         .map(|(l, a)| format!("{}{}", l, a.iter().collect::<String>()))
 }
 
-/// Use exactly sized type names
+/// Use obviously sized type names
 #[derive(Clone, Debug)]
 enum Type {
     Bool,
@@ -83,9 +83,39 @@ where
 }
 
 #[derive(Debug)]
+struct Field {
+    id: Identifier,
+    ty: Type,
+    scalar: Scalar,
+    metadata: Metadata,
+}
+
+/// field_decl = ident : type [ = scalar ] metadata ;
+fn field<I>() -> impl Parser<Input = I, Output = Field>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    identifier()
+        .skip(spaces())
+        .skip(token(':'))
+        .skip(spaces())
+        .and(ty())
+        .skip(spaces())
+        .and(metadata())
+        .skip(spaces())
+        .skip(token(';'))
+        .map(|((id, ty), metadata)| Field {
+            id,
+            ty,
+            scalar: None,
+            metadata,
+        })
+}
+
+#[derive(Debug)]
 enum Stmt {
     Namespace(Vec<Identifier>),
-    Field(Identifier, Type, Option<Scalar>, Metadata),
     Root(Identifier),
 }
 
@@ -101,24 +131,6 @@ where
         .skip(spaces())
         .skip(token(';'))
         .map(|(_, id)| Stmt::Namespace(id))
-}
-
-/// field_decl = ident : type [ = scalar ] metadata ;
-fn field<I>() -> impl Parser<Input = I, Output = Stmt>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    identifier()
-        .skip(spaces())
-        .skip(token(':'))
-        .skip(spaces())
-        .and(ty())
-        .skip(spaces())
-        .and(metadata())
-        .skip(spaces())
-        .skip(token(';'))
-        .map(|((id, ty), metadata)| Stmt::Field(id, ty, None, metadata))
 }
 
 /// root_decl = root_type ident ;
@@ -149,7 +161,10 @@ fn main() {
     let result = namespace().parse("namespace mad.magi;");
     println!("{:?}", result);
 
-    let result = field().parse("a : uint32_t;");
+    let result = field().parse("a : uint32;");
+    println!("{:?}", result);
+
+    let result = field().parse("a : uint32;");
     println!("{:?}", result);
 
     let result = root().parse("root_type vim;");

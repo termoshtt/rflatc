@@ -19,11 +19,22 @@ where
         .map(|(l, a)| format!("{}{}", l, a.iter().collect::<String>()))
 }
 
+/// Use exactly sized type names
 #[derive(Clone, Debug)]
 enum Type {
     Bool,
-    Byte,
-    UserDefined(String),
+    Int8,
+    UInt8,
+    Int16,
+    UInt16,
+    Int32,
+    UInt32,
+    Int64,
+    UInt64,
+    Float32,
+    Float64,
+    String_,
+    UserDefined(Identifier),
 }
 
 /// type = bool | byte | ubyte | short | ushort | int | uint | float | long | ulong | double | int8
@@ -34,7 +45,31 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    value(Type::Bool)
+    identifier().map(|id| match id.as_ref() {
+        "bool" => Type::Bool,
+        "byte" => Type::Int8,
+        "ubyte" => Type::UInt8,
+        "short" => Type::Int16,
+        "ushort" => Type::UInt16,
+        "int" => Type::Int32,
+        "uint" => Type::UInt32,
+        "float" => Type::Float32,
+        "long" => Type::Int64,
+        "ulong" => Type::UInt64,
+        "double" => Type::Float64,
+        "int8" => Type::Int8,
+        "uint8" => Type::UInt8,
+        "int16" => Type::Int16,
+        "uint16" => Type::UInt16,
+        "int32" => Type::Int32,
+        "uint32" => Type::UInt32,
+        "int64" => Type::Int64,
+        "uint64" => Type::UInt64,
+        "float32" => Type::Float32,
+        "float64" => Type::Float64,
+        "string" => Type::String_,
+        _ => Type::UserDefined(id.into()),
+    })
 }
 
 /// metadata = [ ( commasep( ident [ : single_value ] ) ) ]
@@ -105,10 +140,18 @@ fn main() {
     println!("{:?}", result);
     let result = identifier().parse("emacs_vim");
     println!("{:?}", result);
+
+    let result = ty().parse("bool");
+    println!("{:?}", result);
+    let result = ty().parse("long");
+    println!("{:?}", result);
+
     let result = namespace().parse("namespace mad.magi;");
     println!("{:?}", result);
+
     let result = field().parse("a : uint32_t;");
     println!("{:?}", result);
+
     let result = root().parse("root_type vim;");
     println!("{:?}", result);
 }

@@ -162,11 +162,12 @@ where
         .skip(spaces())
         .and(identifier())
         .skip(spaces())
-        .skip(token('{'))
-        .skip(spaces())
-        .and(many1(field()))
-        .skip(token('}'))
-        .map(|(_, fields)| Table { fields })
+        .and(between(
+            token('{'),
+            token('}'),
+            spaces().and(many1(field())),
+        ))
+        .map(|(_, (_, fields))| Table { fields })
 }
 
 fn main() {

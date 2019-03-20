@@ -118,6 +118,7 @@ where
 enum Stmt {
     Namespace(Vec<Identifier>),
     Root(Identifier),
+    Table(Vec<Field>),
 }
 
 /// namespace_decl = namespace ident ( . ident )* ;
@@ -150,11 +151,6 @@ where
         .map(|(_, id)| Stmt::Root(id))
 }
 
-#[derive(Debug)]
-struct Table {
-    fields: Vec<Field>,
-}
-
 fn paren<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
 where
     I: Stream<Item = char>,
@@ -168,7 +164,7 @@ where
     )
 }
 
-fn table<I>() -> impl Parser<Input = I, Output = Table>
+fn table<I>() -> impl Parser<Input = I, Output = Stmt>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
@@ -178,7 +174,18 @@ where
         .and(identifier())
         .skip(spaces())
         .and(paren(many1(field())))
-        .map(|(_, fields)| Table { fields })
+        .skip(spaces())
+        .map(|(_, fields)| Stmt::Table(fields))
+}
+
+fn fbs<I>() -> impl Parser<Input = I, Output = Vec<Stmt>>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    spaces()
+        .and(many1(table().or(namespace()).or(root())))
+        .map(|x| x.1)
 }
 
 fn main() {
@@ -209,6 +216,20 @@ fn main() {
         a: Int32;
         b: Int32;
         }"#,
+    );
+    println!("{:?}", result);
+
+    let result = fbs().parse(
+        r#"
+        namespace test_fbs;
+
+        table A {
+            a: Int32;
+            b: Int32;
+        }
+
+        root_type A;
+        "#,
     );
     println!("{:?}", result);
 }

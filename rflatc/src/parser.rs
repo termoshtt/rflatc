@@ -1,4 +1,4 @@
-//! FlatBuffers compiler
+//! FlatBuffers Parser
 //!
 //! - [Grammar of the schema language](https://google.github.io/flatbuffers/flatbuffers_grammar.html)
 
@@ -83,7 +83,7 @@ where
 }
 
 #[derive(Debug)]
-struct Field {
+pub struct Field {
     id: Identifier,
     ty: Type,
     scalar: Scalar,
@@ -115,7 +115,7 @@ where
 }
 
 #[derive(Debug)]
-enum Stmt {
+pub enum Stmt {
     Namespace(Vec<Identifier>),
     Root(Identifier),
     Table(Vec<Field>),
@@ -178,58 +178,13 @@ where
         .map(|(_, fields)| Stmt::Table(fields))
 }
 
-fn fbs<I>() -> impl Parser<Input = I, Output = Vec<Stmt>>
+/// Entry point of schema language
+pub fn fbs<I>() -> impl Parser<Input = I, Output = Vec<Stmt>>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    spaces()
-        .and(many1(table().or(namespace()).or(root())))
+    spaces() // Drop head spaces
+        .and(many(table().or(namespace()).or(root())))
         .map(|x| x.1)
-}
-
-fn main() {
-    let result = identifier().parse("vim");
-    println!("{:?}", result);
-    let result = identifier().parse("emacs_vim");
-    println!("{:?}", result);
-
-    let result = ty().parse("bool");
-    println!("{:?}", result);
-    let result = ty().parse("long");
-    println!("{:?}", result);
-
-    let result = namespace().parse("namespace mad.magi;");
-    println!("{:?}", result);
-
-    let result = field().parse("a : uint32;");
-    println!("{:?}", result);
-
-    let result = field().parse("a : uint32;");
-    println!("{:?}", result);
-
-    let result = root().parse("root_type vim;");
-    println!("{:?}", result);
-
-    let result = table().parse(
-        r#"table A {
-        a: Int32;
-        b: Int32;
-        }"#,
-    );
-    println!("{:?}", result);
-
-    let result = fbs().parse(
-        r#"
-        namespace test_fbs;
-
-        table A {
-            a: Int32;
-            b: Int32;
-        }
-
-        root_type A;
-        "#,
-    );
-    println!("{:?}", result);
 }

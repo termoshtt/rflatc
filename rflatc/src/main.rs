@@ -131,6 +131,7 @@ where
         .and(sep_by1::<Vec<Identifier>, _, _>(identifier(), token('.')))
         .skip(spaces())
         .skip(token(';'))
+        .skip(spaces())
         .map(|(_, id)| Stmt::Namespace(id))
 }
 
@@ -145,12 +146,26 @@ where
         .and(identifier())
         .skip(spaces())
         .skip(token(';'))
+        .skip(spaces())
         .map(|(_, id)| Stmt::Root(id))
 }
 
 #[derive(Debug)]
 struct Table {
     fields: Vec<Field>,
+}
+
+fn paren<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: Parser<Input = I>,
+{
+    between(
+        token('{'),
+        token('}'),
+        spaces().and(f).skip(spaces()).map(|x| x.1),
+    )
 }
 
 fn table<I>() -> impl Parser<Input = I, Output = Table>
@@ -162,12 +177,8 @@ where
         .skip(spaces())
         .and(identifier())
         .skip(spaces())
-        .and(between(
-            token('{'),
-            token('}'),
-            spaces().and(many1(field())),
-        ))
-        .map(|(_, (_, fields))| Table { fields })
+        .and(paren(many1(field())))
+        .map(|(_, fields)| Table { fields })
 }
 
 fn main() {

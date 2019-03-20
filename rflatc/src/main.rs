@@ -105,6 +105,7 @@ where
         .and(metadata())
         .skip(spaces())
         .skip(token(';'))
+        .skip(spaces())
         .map(|((id, ty), metadata)| Field {
             id,
             ty,
@@ -147,6 +148,27 @@ where
         .map(|(_, id)| Stmt::Root(id))
 }
 
+#[derive(Debug)]
+struct Table {
+    fields: Vec<Field>,
+}
+
+fn table<I>() -> impl Parser<Input = I, Output = Table>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    string("table")
+        .skip(spaces())
+        .and(identifier())
+        .skip(spaces())
+        .skip(token('{'))
+        .skip(spaces())
+        .and(many1(field()))
+        .skip(token('}'))
+        .map(|(_, fields)| Table { fields })
+}
+
 fn main() {
     let result = identifier().parse("vim");
     println!("{:?}", result);
@@ -168,5 +190,13 @@ fn main() {
     println!("{:?}", result);
 
     let result = root().parse("root_type vim;");
+    println!("{:?}", result);
+
+    let result = table().parse(
+        r#"table A {
+        a: Int32;
+        b: Int32;
+        }"#,
+    );
     println!("{:?}", result);
 }

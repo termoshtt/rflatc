@@ -1,0 +1,8 @@
+namespace test_fbs;
+
+table A {
+  a: int32;
+  b: int32;
+}
+
+root_type A;

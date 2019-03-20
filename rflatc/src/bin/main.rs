@@ -3,18 +3,19 @@
 use combine::Parser;
 use rflatc::parser::fbs;
 
+use std::io::Read;
+
 fn main() {
-    let result = fbs().parse(
-        r#"
-        namespace test_fbs;
+    let mut input = String::new();
+    let size = std::io::stdin()
+        .read_to_string(&mut input)
+        .expect("Failed to read input");
+    if size == 0 {
+        panic!("Input is empty");
+    }
 
-        table A {
-            a: Int32;
-            b: Int32;
-        }
+    let result = fbs().parse(input.as_str()).expect("Failed to parse");
+    assert_eq!(result.1, "");
 
-        root_type A;
-        "#,
-    );
-    println!("{:?}", result);
+    println!("{:?}", result.0);
 }

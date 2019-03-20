@@ -20,7 +20,7 @@ where
 }
 
 /// Use obviously sized type names
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum Type {
     Bool,
     Int8,
@@ -82,7 +82,7 @@ where
     value(None)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Field {
     id: Identifier,
     ty: Type,
@@ -114,7 +114,7 @@ where
         })
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Stmt {
     Namespace(Vec<Identifier>),
     Root(Identifier),
@@ -187,4 +187,86 @@ where
     spaces() // Drop head spaces
         .and(many(table().or(namespace()).or(root())))
         .map(|x| x.1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_identifier() {
+        assert_eq!(
+            identifier().parse("id_id_").unwrap(),
+            ("id_id_".to_string(), "")
+        );
+    }
+
+    #[test]
+    fn test_type() {
+        assert_eq!(ty().parse("bool").unwrap(), (Type::Bool, ""));
+        assert_eq!(ty().parse("long").unwrap(), (Type::Int64, ""));
+    }
+
+    #[test]
+    fn test_field() {
+        assert_eq!(
+            field().parse("a : uint32;").unwrap(),
+            (
+                Field {
+                    id: "a".into(),
+                    ty: Type::UInt32,
+                    scalar: None,
+                    metadata: None
+                },
+                ""
+            )
+        );
+    }
+
+    #[test]
+    fn test_namespace() {
+        assert_eq!(
+            namespace().parse("namespace mad.magi;").unwrap(),
+            (Stmt::Namespace(vec!["mad".into(), "magi".into()]), "")
+        );
+    }
+
+    #[test]
+    fn test_root() {
+        assert_eq!(
+            root().parse("root_type A;").unwrap(),
+            (Stmt::Root("A".into()), "")
+        );
+    }
+
+    #[test]
+    fn test_table() {
+        assert_eq!(
+            table()
+                .parse(
+                    r#"table A {
+                        a: int32;
+                        b: int32;
+                    }"#,
+                )
+                .unwrap(),
+            (
+                Stmt::Table(vec![
+                    Field {
+                        id: "a".into(),
+                        ty: Type::Int32,
+                        scalar: None,
+                        metadata: None
+                    },
+                    Field {
+                        id: "b".into(),
+                        ty: Type::Int32,
+                        scalar: None,
+                        metadata: None
+                    }
+                ]),
+                ""
+            )
+        );
+    }
 }

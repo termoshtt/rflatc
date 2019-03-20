@@ -5,7 +5,6 @@
 use combine::{char::*, parser::Parser, *};
 
 type Identifier = String;
-type Type = String;
 type Scalar = ();
 type Metadata = Option<Vec<String>>;
 
@@ -18,6 +17,24 @@ where
     letter()
         .and(many::<Vec<char>, _>(alpha_num().or(char('_'))))
         .map(|(l, a)| format!("{}{}", l, a.iter().collect::<String>()))
+}
+
+#[derive(Clone, Debug)]
+enum Type {
+    Bool,
+    Byte,
+    UserDefined(String),
+}
+
+/// type = bool | byte | ubyte | short | ushort | int | uint | float | long | ulong | double | int8
+/// | uint8 | int16 | uint16 | int32 | uint32| int64 | uint64 | float32 | float64 | string |
+/// [ type ] | ident
+fn ty<I>() -> impl Parser<Input = I, Output = Type>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    value(Type::Bool)
 }
 
 /// metadata = [ ( commasep( ident [ : single_value ] ) ) ]
@@ -61,7 +78,7 @@ where
         .skip(spaces())
         .skip(token(':'))
         .skip(spaces())
-        .and(identifier())
+        .and(ty())
         .skip(spaces())
         .and(metadata())
         .skip(spaces())

@@ -4,9 +4,9 @@
 
 use combine::{char::*, parser::Parser, *};
 
-type Identifier = String;
-type Scalar = Option<String>;
-type Metadata = Option<Vec<String>>;
+pub type Identifier = String;
+pub type Scalar = Option<String>;
+pub type Metadata = Option<Vec<String>>;
 
 /// ident = [a-zA-Z_][a-zA-Z0-9_]*
 fn identifier<I>() -> impl Parser<Input = I, Output = Identifier>
@@ -21,7 +21,7 @@ where
 
 /// Use obviously sized type names
 #[derive(Clone, Debug, PartialEq)]
-enum Type {
+pub enum Type {
     Bool,
     Int8,
     UInt8,
@@ -84,10 +84,10 @@ where
 
 #[derive(Debug, PartialEq)]
 pub struct Field {
-    id: Identifier,
-    ty: Type,
-    scalar: Scalar,
-    metadata: Metadata,
+    pub id: Identifier,
+    pub ty: Type,
+    pub scalar: Scalar,
+    pub metadata: Metadata,
 }
 
 /// field_decl = ident : type [ = scalar ] metadata ;

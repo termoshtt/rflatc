@@ -4,11 +4,13 @@ use crate::parser::*;
 use failure::*;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct Entry {
     pub path: Vec<Identifier>,
     pub ty: Type,
 }
 
+#[derive(Debug)]
 pub struct Buffer {
     pub root: Vec<Entry>,
     pub namespace: Vec<Identifier>,

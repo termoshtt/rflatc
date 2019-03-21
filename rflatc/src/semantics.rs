@@ -15,46 +15,38 @@ pub struct Buffer {
 }
 
 fn seek_namespace(stmt: &[Stmt]) -> Fallible<Vec<Identifier>> {
-    let mut namespace = None;
-    for st in stmt {
-        match st {
-            Stmt::Namespace(ns) => {
-                if namespace.is_some() {
-                    bail!("duplicated namespace: {:?}, {:?}", namespace.unwrap(), ns);
-                }
-                namespace = Some(ns);
-            }
-            _ => continue,
-        }
-    }
-    match namespace {
-        Some(ns) => Ok(ns.clone()),
-        None => bail!("No namespaces are found"),
+    let ns: Vec<_> = stmt
+        .iter()
+        .filter_map(|st| match st {
+            Stmt::Namespace(ns) => Some(ns),
+            _ => None,
+        })
+        .collect();
+    match ns.len() {
+        0 => bail!("No namespaces are found"),
+        1 => Ok(ns[0].clone()),
+        _ => bail!("Duplicated namespaces: {:?}", ns),
     }
 }
 
 fn seek_root_type(stmt: &[Stmt]) -> Fallible<Identifier> {
-    let mut root = None;
-    for st in stmt {
-        match st {
-            Stmt::Root(id) => {
-                if root.is_some() {
-                    bail!("duplicated root_type: {:?}, {:?}", root.unwrap(), id);
-                }
-                root = Some(id);
-            }
-            _ => continue,
-        }
-    }
-    match root {
-        Some(id) => Ok(id.clone()),
-        None => bail!("No root_type are found"),
+    let root: Vec<_> = stmt
+        .iter()
+        .filter_map(|st| match st {
+            Stmt::Root(id) => Some(id),
+            _ => None,
+        })
+        .collect();
+    match root.len() {
+        0 => bail!("No root_type are found"),
+        1 => Ok(root[0].clone()),
+        _ => bail!("Duplicated root_type: {:?}", root),
     }
 }
 
 fn seek_tables(stmt: &[Stmt]) -> HashMap<Identifier, Vec<Entry>> {
     stmt.iter()
-        .flat_map(|st| match st {
+        .filter_map(|st| match st {
             Stmt::Table(table) => Some((
                 table.id.clone(),
                 table

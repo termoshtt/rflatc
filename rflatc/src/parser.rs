@@ -82,7 +82,7 @@ where
     value(None)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Field {
     pub id: Identifier,
     pub ty: Type,
@@ -114,11 +114,17 @@ where
         })
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Table {
+    pub id: Identifier,
+    pub fields: Vec<Field>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     Namespace(Vec<Identifier>),
     Root(Identifier),
-    Table(Vec<Field>),
+    Table(Table),
 }
 
 /// namespace_decl = namespace ident ( . ident )* ;
@@ -175,7 +181,7 @@ where
         .skip(spaces())
         .and(paren(many1(field())))
         .skip(spaces())
-        .map(|(_, fields)| Stmt::Table(fields))
+        .map(|((_, id), fields)| Stmt::Table(Table { id, fields }))
 }
 
 /// Entry point of schema language

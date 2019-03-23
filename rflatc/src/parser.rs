@@ -257,20 +257,23 @@ mod tests {
                 )
                 .unwrap(),
             (
-                Stmt::Table(vec![
-                    Field {
-                        id: "a".into(),
-                        ty: Type::Int32,
-                        scalar: None,
-                        metadata: None
-                    },
-                    Field {
-                        id: "b".into(),
-                        ty: Type::Int32,
-                        scalar: None,
-                        metadata: None
-                    }
-                ]),
+                Stmt::Table(Table {
+                    id: "A".to_string(),
+                    fields: vec![
+                        Field {
+                            id: "a".into(),
+                            ty: Type::Int32,
+                            scalar: None,
+                            metadata: None
+                        },
+                        Field {
+                            id: "b".into(),
+                            ty: Type::Int32,
+                            scalar: None,
+                            metadata: None
+                        }
+                    ]
+                }),
                 ""
             )
         );

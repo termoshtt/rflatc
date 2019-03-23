@@ -1,7 +1,7 @@
 //! FlatBuffers compiler
 
 use combine::Parser;
-use rflatc::parser::fbs;
+use rflatc::{parser::fbs, semantics::Buffer};
 
 use std::io::Read;
 
@@ -14,8 +14,11 @@ fn main() {
         panic!("Input is empty");
     }
 
-    let result = fbs().parse(input.as_str()).expect("Failed to parse");
-    assert_eq!(result.1, "");
+    let (stmt, res) = fbs().parse(input.as_str()).expect("Failed to parse");
+    assert_eq!(res, "");
 
-    println!("{:?}", result.0);
+    println!("{:?}", stmt);
+
+    let buffer = Buffer::new(stmt);
+    println!("{:?}", buffer);
 }

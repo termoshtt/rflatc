@@ -4,9 +4,9 @@
 
 use combine::{char::*, parser::Parser, *};
 
-type Identifier = String;
-type Scalar = Option<String>;
-type Metadata = Option<Vec<String>>;
+pub type Identifier = String;
+pub type Scalar = Option<String>;
+pub type Metadata = Option<Vec<String>>;
 
 /// ident = [a-zA-Z_][a-zA-Z0-9_]*
 fn identifier<I>() -> impl Parser<Input = I, Output = Identifier>
@@ -21,7 +21,7 @@ where
 
 /// Use obviously sized type names
 #[derive(Clone, Debug, PartialEq)]
-enum Type {
+pub enum Type {
     Bool,
     Int8,
     UInt8,
@@ -82,12 +82,12 @@ where
     value(None)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Field {
-    id: Identifier,
-    ty: Type,
-    scalar: Scalar,
-    metadata: Metadata,
+    pub id: Identifier,
+    pub ty: Type,
+    pub scalar: Scalar,
+    pub metadata: Metadata,
 }
 
 /// field_decl = ident : type [ = scalar ] metadata ;
@@ -114,11 +114,17 @@ where
         })
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Table {
+    pub id: Identifier,
+    pub fields: Vec<Field>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     Namespace(Vec<Identifier>),
     Root(Identifier),
-    Table(Vec<Field>),
+    Table(Table),
 }
 
 /// namespace_decl = namespace ident ( . ident )* ;
@@ -175,7 +181,7 @@ where
         .skip(spaces())
         .and(paren(many1(field())))
         .skip(spaces())
-        .map(|(_, fields)| Stmt::Table(fields))
+        .map(|((_, id), fields)| Stmt::Table(Table { id, fields }))
 }
 
 /// Entry point of schema language
@@ -251,20 +257,23 @@ mod tests {
                 )
                 .unwrap(),
             (
-                Stmt::Table(vec![
-                    Field {
-                        id: "a".into(),
-                        ty: Type::Int32,
-                        scalar: None,
-                        metadata: None
-                    },
-                    Field {
-                        id: "b".into(),
-                        ty: Type::Int32,
-                        scalar: None,
-                        metadata: None
-                    }
-                ]),
+                Stmt::Table(Table {
+                    id: "A".to_string(),
+                    fields: vec![
+                        Field {
+                            id: "a".into(),
+                            ty: Type::Int32,
+                            scalar: None,
+                            metadata: None
+                        },
+                        Field {
+                            id: "b".into(),
+                            ty: Type::Int32,
+                            scalar: None,
+                            metadata: None
+                        }
+                    ]
+                }),
                 ""
             )
         );

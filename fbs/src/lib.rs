@@ -16,7 +16,7 @@ pub mod error;
 
 pub type Result<T> = std::result::Result<T, crate::error::Error>;
 
-/// Entire buffer
+/// raw entire buffer
 #[repr(C, align(32))]
 #[derive(Debug)]
 struct RawBuffer {
@@ -25,6 +25,7 @@ struct RawBuffer {
                            // and following bytes are managed by another struct
 }
 
+/// Handler of a heap-allocated raw buffer
 #[derive(Debug)]
 pub struct Buffer {
     raw: Box<RawBuffer>,
@@ -37,12 +38,6 @@ impl RawBuffer {
         let ptr = alloc::alloc(layout);
         let fat_ptr = mem::transmute::<(*mut u8, usize), *mut Self>((ptr, len - 4));
         NonNull::new(fat_ptr).expect("Cannot allocate")
-    }
-
-    /// Reinterpret existing buffer without reallocation
-    #[allow(unused)]
-    unsafe fn transmute(ptr: *mut u8, len: usize) -> *mut Self {
-        mem::transmute::<(*mut u8, usize), *mut Self>((ptr, len - 4))
     }
 }
 

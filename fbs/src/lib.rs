@@ -1,68 +1,104 @@
 //! Runtime for rflatc
 //!
-//! Buffer
+//! RawBuffer
 //! ------
 //! Address space   |------------------------------------------------------------|
-//! Buffer          |xxxx|IDENTIFIER\0-------------------------------------------|
+//! RawBuffer       |xxxx|IDENTIFIER\0-------------------------------------------|
 //! DataTable                             |xxxx|xxxx|----------------------------|
 //!   table_offset  o-------------------->
 
-use std::ffi::CStr;
+use std::{
+    alloc, ffi, mem,
+    pin::Pin,
+    ptr::{self, NonNull},
+};
 
-/// Handler for entire buffer
+pub mod error;
+
+pub type Result<T> = std::result::Result<T, crate::error::Error>;
+
+/// Entire buffer
 #[repr(C, align(32))]
 #[derive(Debug)]
-pub struct Buffer {
+struct RawBuffer {
     root_table_offset: u32,
     file_identifier: [u8], // identifier must be '\0'-terminated as FlatBuffers defines,
                            // and following bytes are managed by another struct
 }
 
+#[derive(Debug)]
+pub struct Buffer {
+    raw: Pin<Box<RawBuffer>>,
+}
+
+impl RawBuffer {
+    /// Allocate a buffer on heap
+    unsafe fn alloc(len: usize) -> NonNull<Self> {
+        let layout = alloc::Layout::from_size_align(len, 32).expect("Fail to set memory layout");
+        let ptr = alloc::alloc(layout);
+        let fat_ptr = mem::transmute::<(*mut u8, usize), *mut Self>((ptr, len - 4));
+        NonNull::new(fat_ptr).expect("Cannot allocate")
+    }
+
+    /// Reinterpret existing buffer without reallocation
+    #[allow(unused)]
+    unsafe fn transmute(ptr: *mut u8, len: usize) -> *mut Self {
+        mem::transmute::<(*mut u8, usize), *mut Self>((ptr, len - 4))
+    }
+}
+
 impl Buffer {
-    pub fn new(bytes: &[u8]) -> &Self {
-        let ptr = bytes.as_ptr();
+    /// Create a new empty (non-initialized) buffer
+    ///
+    /// ## Safety
+    /// The containts of this buffer is not initialized. Be sure to write loaded/recived binary.
+    pub unsafe fn new(len: usize) -> Self {
+        let ptr = RawBuffer::alloc(len);
+        Self {
+            raw: Box::from_raw(ptr.as_ptr()).into(),
+        }
+    }
+
+    /// Create new buffer, and copy the containts of slice
+    pub fn copy_from_slice(bytes: &[u8]) -> Self {
         let len = bytes.len();
-        assert_eq!(ptr as usize % 32, 0);
-        unsafe { &*std::mem::transmute::<(*const u8, usize), *const Self>((ptr, len - 4)) }
+        let mut buf = unsafe { Self::new(len) };
+        let ptr: *mut RawBuffer = buf.raw.as_mut().get_mut();
+        unsafe { ptr::copy_nonoverlapping(bytes.as_ptr(), ptr as *mut u8, len) };
+        buf
     }
 
-    pub fn get_file_identifier(&self) -> &CStr {
-        unimplemented!()
-    }
-
-    pub fn get_data_table(&self) -> &DataTable {
-        let inc = self.root_table_offset as usize / 4;
-        DataTable::new(&self.file_identifier[inc..])
+    pub fn file_identifier(&self) -> Result<&str> {
+        let cstr = ffi::CStr::from_bytes_with_nul(&self.raw.file_identifier)?;
+        Ok(cstr.to_str()?)
     }
 }
 
 #[repr(C, align(32))]
 #[derive(Debug)]
-pub struct DataTable {
+pub struct RawTable {
     vtable_offset: u32,
     field_offset: u32,
     data: [u8],
-}
-
-impl DataTable {
-    pub fn new(bytes: &[u8]) -> &Self {
-        let ptr = bytes.as_ptr();
-        let len = bytes.len();
-        assert_eq!(ptr as usize % 32, 0); // Force 32-bit alignment
-        unsafe { &*std::mem::transmute::<(*const u8, usize), *const Self>((ptr, len - 4 * 2)) }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const TEST_HEADER: &'static [u8] = &[
+        0x00, 0x01, 0x00, 0x00, 'N' as u8, 'O' as u8, 'O' as u8, 'B' as u8, '\0' as u8,
+    ];
+
     #[test]
     fn test_new() {
-        let buf = vec![
-            0x00, 0x01, 0x00, 0x00, 'N' as u8, 'O' as u8, 'O' as u8, 'B' as u8, '\0' as u8,
-        ];
-        let b = Buffer::new(&buf);
-        assert_eq!(b.file_identifier.len(), 5)
+        let buf = Buffer::copy_from_slice(&TEST_HEADER);
+        assert_eq!(buf.raw.file_identifier.len(), 5);
+    }
+
+    #[test]
+    fn test_identifier() {
+        let buf = Buffer::copy_from_slice(&TEST_HEADER);
+        assert_eq!(buf.file_identifier().unwrap(), "NOOB");
     }
 }

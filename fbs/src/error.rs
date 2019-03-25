@@ -7,6 +7,9 @@ pub enum Error {
 
     /// String is not encoded by UTF-8
     NonUtf8(str::Utf8Error),
+
+    /// Offset of table is not 32-bit aligned
+    InvalidTableAlignment { ptr: *const u8 },
 }
 
 impl From<ffi::FromBytesWithNulError> for Error {
@@ -26,6 +29,9 @@ impl fmt::Display for Error {
         match self {
             Error::InvalidString(e) => e.fmt(f),
             Error::NonUtf8(e) => e.fmt(f),
+            Error::InvalidTableAlignment { .. } => {
+                write!(f, "The offset of table is not aligned on 32-bit alignment")
+            }
         }
     }
 }
@@ -35,6 +41,7 @@ impl std::error::Error for Error {
         match self {
             Error::InvalidString(e) => Some(e),
             Error::NonUtf8(e) => Some(e),
+            Error::InvalidTableAlignment { .. } => None,
         }
     }
 }

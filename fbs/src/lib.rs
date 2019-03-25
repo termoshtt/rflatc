@@ -20,7 +20,7 @@ pub type Result<T> = std::result::Result<T, crate::error::Error>;
 #[repr(C, align(32))]
 #[derive(Debug)]
 struct RawBuffer {
-    root_table_offset: u32,
+    table_offset: u32,
     file_identifier: [u8], // identifier must be '\0'-terminated as FlatBuffers defines,
                            // and following bytes are managed by another struct
 }
@@ -29,6 +29,22 @@ struct RawBuffer {
 #[derive(Debug)]
 pub struct Buffer {
     raw: Box<RawBuffer>,
+}
+
+#[repr(C, align(32))]
+#[derive(Debug)]
+pub struct Table {
+    vtable_offset: i32,
+    field_offset: u32,
+    data: [u8],
+}
+
+#[repr(C, align(16))]
+#[derive(Debug)]
+pub struct VTable {
+    vtable_length: u16,
+    table_length: u16,
+    offsets: [u16],
 }
 
 impl RawBuffer {
@@ -67,14 +83,42 @@ impl Buffer {
         let cstr = ffi::CStr::from_bytes_with_nul(&self.raw.file_identifier)?;
         Ok(cstr.to_str()?)
     }
-}
 
-#[repr(C, align(32))]
-#[derive(Debug)]
-pub struct RawTable {
-    vtable_offset: u32,
-    field_offset: u32,
-    data: [u8],
+    unsafe fn get_tables(&self) -> (&VTable, &Table) {
+        let ptr = &*self.raw as *const RawBuffer as *const u8;
+        let table_ptr = ptr.offset(self.raw.table_offset as isize);
+        // Read Table hader
+        let vtable_offset = {
+            let table_fat_ptr = mem::transmute::<(*const u8, usize), *const Table>((
+                table_ptr, 0, /* DUMMY value */
+            ));
+            (*table_fat_ptr).vtable_offset
+        } as isize;
+
+        let vtable_ptr = (table_ptr as *const u8).offset(vtable_offset);
+
+        // Read vtable header
+        let (vtable_length, table_length) = {
+            let vtable_fat_ptr =
+                mem::transmute::<(*const u8, usize), *const VTable>((vtable_ptr, 0));
+            (
+                (*vtable_fat_ptr).vtable_length,
+                (*vtable_fat_ptr).table_length,
+            )
+        };
+
+        let vtable: &VTable = &*mem::transmute::<(*const u8, usize), *const VTable>((
+            vtable_ptr,
+            (vtable_length - 4) as usize,
+        ));
+
+        let table: &Table = &*mem::transmute::<(*const u8, usize), *const Table>((
+            table_ptr,
+            (table_length - 4) as usize,
+        ));
+
+        (vtable, table)
+    }
 }
 
 #[cfg(test)]

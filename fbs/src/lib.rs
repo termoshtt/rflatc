@@ -9,7 +9,6 @@
 
 use std::{
     alloc, ffi, mem,
-    pin::Pin,
     ptr::{self, NonNull},
 };
 
@@ -28,7 +27,7 @@ struct RawBuffer {
 
 #[derive(Debug)]
 pub struct Buffer {
-    raw: Pin<Box<RawBuffer>>,
+    raw: Box<RawBuffer>,
 }
 
 impl RawBuffer {
@@ -63,7 +62,8 @@ impl Buffer {
     pub fn copy_from_slice(bytes: &[u8]) -> Self {
         let len = bytes.len();
         let mut buf = unsafe { Self::new(len) };
-        let ptr: *mut RawBuffer = buf.raw.as_mut().get_mut();
+        let ptr: *mut RawBuffer = buf.raw.as_mut();
+        // this never overlap since buf is newly allocated
         unsafe { ptr::copy_nonoverlapping(bytes.as_ptr(), ptr as *mut u8, len) };
         buf
     }

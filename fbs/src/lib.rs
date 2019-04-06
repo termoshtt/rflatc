@@ -61,7 +61,7 @@ impl Buffer {
     /// Create a new empty (non-initialized) buffer
     ///
     /// ## Safety
-    /// The containts of this buffer is not initialized. Be sure to write loaded/recived binary.
+    /// The contents of this buffer is not initialized. Be sure to write loaded/received binary.
     pub unsafe fn new(len: usize) -> Self {
         let ptr = RawBuffer::alloc(len);
         Self {
@@ -69,7 +69,7 @@ impl Buffer {
         }
     }
 
-    /// Create new buffer, and copy the containts of slice
+    /// Create new buffer, and copy the contents of slice
     pub fn copy_from_slice(bytes: &[u8]) -> Self {
         let len = bytes.len();
         let mut buf = unsafe { Self::new(len) };
@@ -90,7 +90,7 @@ impl Buffer {
 
             let ptr = &*self.raw as *const RawBuffer as *const u8;
             let table_ptr = ptr.offset(self.raw.table_offset as isize);
-            // Read vtable offset from Table hader
+            // Read vtable offset from Table header
             let vtable_offset = {
                 // FIXME Revise to portable way
                 // Thin ptr to fat ptr transmute is not assured

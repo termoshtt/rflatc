@@ -8,13 +8,16 @@
 //!   table_offset  o-------------------->
 
 use std::{
-    alloc, ffi, mem,
+    alloc, ffi, fs,
+    io::{self, Read},
+    mem,
     ptr::{self, NonNull},
+    result,
 };
 
 pub mod error;
 
-pub type Result<T> = std::result::Result<T, crate::error::Error>;
+pub type Result<T> = result::Result<T, crate::error::Error>;
 
 /// raw entire buffer
 #[repr(C, align(32))]
@@ -79,6 +82,14 @@ impl Buffer {
         buf
     }
 
+    /// Create new buffer, and copy from the file
+    pub fn from_file(filename: &str) -> io::Result<Self> {
+        let mut f = fs::File::open(filename)?;
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf)?;
+        Ok(Self::copy_from_slice(&buf))
+    }
+
     pub fn file_identifier(&self) -> Result<&str> {
         let cstr = ffi::CStr::from_bytes_with_nul(&self.raw.file_identifier)?;
         Ok(cstr.to_str()?)
@@ -138,7 +149,6 @@ impl Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, io::Read};
 
     const TEST_HEADER: &'static [u8] = &[
         0x00, 0x01, 0x00, 0x00, 'N' as u8, 'O' as u8, 'O' as u8, 'B' as u8, '\0' as u8,
@@ -158,11 +168,7 @@ mod tests {
 
     #[test]
     fn read_example_buffer() {
-        let mut f = fs::File::open("example.bin").unwrap();
-        let mut buf = Vec::new();
-        f.read_to_end(&mut buf).unwrap();
-        let fb = Buffer::copy_from_slice(&buf);
-
+        let fb = Buffer::from_file("example.bin").unwrap();
         let (vtable, table) = fb.get_tables();
 
         assert_eq!(vtable.vtable_length, 12);

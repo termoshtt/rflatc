@@ -95,54 +95,62 @@ impl Buffer {
         Ok(cstr.to_str()?)
     }
 
-    pub fn get_tables(&self) -> (&VTable, &Table) {
-        unsafe {
-            // CAUTION: almost every lines are unsafe :<
+    /// Get nth member of the table
+    ///
+    /// Safety
+    /// -------
+    /// The value should be broken if incorrect type `T` is specified
+    pub unsafe fn get<T>(&self, n: usize) -> &T {
+        let (vtable, table) = self.get_tables();
+        let offset = vtable.offsets[n];
+        let ptr = table.data.as_ptr().offset(offset as isize) as *const T;
+        &*ptr
+    }
 
-            let ptr = &*self.raw as *const RawBuffer as *const u8;
-            let table_ptr = ptr.offset(self.raw.table_offset as isize);
-            // Read vtable offset from Table header
-            let vtable_offset = {
-                // FIXME Revise to portable way
-                // Thin ptr to fat ptr transmute is not assured
-                let table_fat_ptr = mem::transmute::<(*const u8, usize), *const Table>((
-                    table_ptr,
-                    0, /* DUMMY size (since the length of trailing length of `data` is unknown here) */
-                ));
-                (*table_fat_ptr).vtable_offset
-            };
-
-            let vtable_ptr = (table_ptr as *const u8).offset(-vtable_offset as isize);
-
-            // Read vtable header
-            let (vtable_length, table_length) = {
-                // FIXME Revise to portable way
-                // Thin ptr to fat ptr transmute is not assured
-                let vtable_fat_ptr = mem::transmute::<(*const u8, usize), *const VTable>((
-                    vtable_ptr, 0, /* DUMMY size */
-                ));
-                (
-                    (*vtable_fat_ptr).vtable_length,
-                    (*vtable_fat_ptr).table_length,
-                )
-            };
-
-            // TODO Validate the table/vtable length input if these go in the buffer memory
-
-            let vtable: &VTable = &*mem::transmute::<(*const u8, usize), *const VTable>((
-                vtable_ptr,
-                (vtable_length / 2 - 2) as usize, // vtable_length is a length as a &[u8]
-                                                  // - divide by 2 to match &[u16]
-                                                  // - sub 2 for vtable_length(u16) and table_length(u16)
-            ));
-
-            let table: &Table = &*mem::transmute::<(*const u8, usize), *const Table>((
+    unsafe fn get_tables(&self) -> (&VTable, &Table) {
+        let ptr = &*self.raw as *const RawBuffer as *const u8;
+        let table_ptr = ptr.offset(self.raw.table_offset as isize);
+        // Read vtable offset from Table header
+        let vtable_offset = {
+            // FIXME Revise to portable way
+            // Thin ptr to fat ptr transmute is not assured
+            let table_fat_ptr = mem::transmute::<(*const u8, usize), *const Table>((
                 table_ptr,
-                (table_length - 4) as usize,
+                0, /* DUMMY size (since the length of trailing length of `data` is unknown here) */
             ));
+            (*table_fat_ptr).vtable_offset
+        };
 
-            (vtable, table)
-        }
+        let vtable_ptr = (table_ptr as *const u8).offset(-vtable_offset as isize);
+
+        // Read vtable header
+        let (vtable_length, table_length) = {
+            // FIXME Revise to portable way
+            // Thin ptr to fat ptr transmute is not assured
+            let vtable_fat_ptr = mem::transmute::<(*const u8, usize), *const VTable>((
+                vtable_ptr, 0, /* DUMMY size */
+            ));
+            (
+                (*vtable_fat_ptr).vtable_length,
+                (*vtable_fat_ptr).table_length,
+            )
+        };
+
+        // TODO Validate the table/vtable length input if these go in the buffer memory
+
+        let vtable: &VTable = &*mem::transmute::<(*const u8, usize), *const VTable>((
+            vtable_ptr,
+            (vtable_length / 2 - 2) as usize, // vtable_length is a length as a &[u8]
+                                              // - divide by 2 to match &[u16]
+                                              // - sub 2 for vtable_length(u16) and table_length(u16)
+        ));
+
+        let table: &Table = &*mem::transmute::<(*const u8, usize), *const Table>((
+            table_ptr,
+            (table_length - 4) as usize,
+        ));
+
+        (vtable, table)
     }
 }
 
@@ -169,7 +177,7 @@ mod tests {
     #[test]
     fn read_example_buffer() {
         let fb = Buffer::from_file("example.bin").unwrap();
-        let (vtable, table) = fb.get_tables();
+        let (vtable, table) = unsafe { fb.get_tables() };
 
         assert_eq!(vtable.vtable_length, 12);
         assert_eq!(vtable.table_length, 12);

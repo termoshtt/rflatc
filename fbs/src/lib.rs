@@ -163,9 +163,13 @@ mod tests {
         f.read_to_end(&mut buf).unwrap();
         let fb = Buffer::copy_from_slice(&buf);
 
-        let (vtable, table) = unsafe { fb.get_tables() };
-        println!("vtable = {:?}", vtable);
-        println!("table  = {:?}", table);
-        panic!("!!")
+        let (vtable, table) = fb.get_tables();
+
+        assert_eq!(vtable.vtable_length, 12);
+        assert_eq!(vtable.table_length, 12);
+        assert_eq!(vtable.offsets, [8, 0, 4, 10]);
+
+        assert_eq!(table.vtable_offset, -24);
+        assert_eq!(table.field_offset, 8);
     }
 }

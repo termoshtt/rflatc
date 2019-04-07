@@ -1,3 +1,10 @@
+//! Read/Write into on-memory FlatBuffers
+//!
+//! Links
+//! ------
+//! - [flatcc/FlatBuffers Binary Format](https://github.com/dvidelabs/flatcc/blob/master/doc/binary-format.md)
+//! - [FlatBuffers internals](https://google.github.io/flatbuffers/flatbuffers_internals.html)
+
 use crate::error::*;
 use std::{
     alloc, ffi, fs,
@@ -23,7 +30,7 @@ pub struct Buffer {
 
 #[repr(C, align(32))]
 #[derive(Debug)]
-pub struct Table {
+struct Table {
     vtable_offset: i32,
     field_offset: u32,
     data: [u8],
@@ -31,14 +38,14 @@ pub struct Table {
 
 #[repr(C, align(16))]
 #[derive(Debug)]
-pub struct VTable {
+struct VTable {
     vtable_length: u16,
     table_length: u16,
     offsets: [u16],
 }
 
 impl RawBuffer {
-    /// Allocate a buffer on heap
+    /// Allocate a 32-bit aligned buffer on heap
     unsafe fn alloc(len: usize) -> NonNull<Self> {
         let layout = alloc::Layout::from_size_align(len, 32).expect("Fail to set memory layout");
         let ptr = alloc::alloc(layout);
@@ -77,6 +84,7 @@ impl Buffer {
         Ok(Self::copy_from_slice(&buf))
     }
 
+    /// Get format identifier name
     pub fn file_identifier(&self) -> Result<&str> {
         let cstr = ffi::CStr::from_bytes_with_nul(&self.raw.file_identifier)?;
         Ok(cstr.to_str()?)

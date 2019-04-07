@@ -13,6 +13,12 @@ use std::{
     ptr::{self, NonNull},
 };
 
+/// Handler of a heap-allocated raw buffer
+#[derive(Debug)]
+pub struct Buffer {
+    raw: Box<RawBuffer>,
+}
+
 /// raw entire buffer
 #[repr(C, align(32))]
 #[derive(Debug)]
@@ -20,12 +26,6 @@ struct RawBuffer {
     table_offset: u32,
     file_identifier: [u8], // identifier must be '\0'-terminated as FlatBuffers defines,
                            // and following bytes are managed by another struct
-}
-
-/// Handler of a heap-allocated raw buffer
-#[derive(Debug)]
-pub struct Buffer {
-    raw: Box<RawBuffer>,
 }
 
 #[repr(C, align(32))]
@@ -102,13 +102,18 @@ impl Buffer {
         &*ptr
     }
 
+    /// Read table and vtable on the buffer
+    ///
+    /// TODO
+    /// -----
+    /// - Revise to portable way. Thin ptr to fat ptr transmute is not assured
+    /// - Validate the table/vtable length input if these go in the buffer memory
     unsafe fn get_tables(&self) -> (&VTable, &Table) {
         let ptr = &*self.raw as *const RawBuffer as *const u8;
         let table_ptr = ptr.offset(self.raw.table_offset as isize);
+
         // Read vtable offset from Table header
         let vtable_offset = {
-            // FIXME Revise to portable way
-            // Thin ptr to fat ptr transmute is not assured
             let table_fat_ptr = mem::transmute::<(*const u8, usize), *const Table>((
                 table_ptr,
                 0, /* DUMMY size (since the length of trailing length of `data` is unknown here) */
@@ -120,8 +125,6 @@ impl Buffer {
 
         // Read vtable header
         let (vtable_length, table_length) = {
-            // FIXME Revise to portable way
-            // Thin ptr to fat ptr transmute is not assured
             let vtable_fat_ptr = mem::transmute::<(*const u8, usize), *const VTable>((
                 vtable_ptr, 0, /* DUMMY size */
             ));
@@ -130,8 +133,6 @@ impl Buffer {
                 (*vtable_fat_ptr).table_length,
             )
         };
-
-        // TODO Validate the table/vtable length input if these go in the buffer memory
 
         let vtable: &VTable = &*mem::transmute::<(*const u8, usize), *const VTable>((
             vtable_ptr,

@@ -1,5 +1,8 @@
-use std::{ffi, fmt, str};
+use std::{ffi, fmt, result, str};
 
+pub type Result<T> = result::Result<T, crate::error::Error>;
+
+/// Error for fbs
 #[derive(Debug, Clone)]
 pub enum Error {
     /// String is not '\0' terminated

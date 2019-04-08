@@ -32,7 +32,6 @@ struct RawBuffer {
 #[derive(Debug)]
 struct Table {
     vtable_offset: i32,
-    field_offset: u32,
     data: [u8],
 }
 
@@ -95,11 +94,40 @@ impl Buffer {
     /// Safety
     /// -------
     /// The value should be broken if incorrect type `T` is specified
-    pub unsafe fn get<T>(&self, n: usize) -> &T {
+    pub unsafe fn get_sized<T>(&self, n: usize) -> Result<&T> {
         let (vtable, table) = self.get_tables();
         let offset = vtable.offsets[n];
-        let ptr = table.data.as_ptr().offset(offset as isize) as *const T;
-        &*ptr
+        if offset == 0 {
+            return Err(Error::DeprecatedMember {});
+        }
+        let cur = table as *const Table as *const u8;
+        let cur = cur.offset(offset as isize);
+        Ok(&*(cur as *const T))
+    }
+
+    /// Get nth member string on the table
+    pub fn get_str(&self, n: usize) -> Result<&str> {
+        let cstr = unsafe {
+            let (vtable, table) = self.get_tables();
+            let offset = vtable.offsets[n];
+            if offset == 0 {
+                return Err(Error::DeprecatedMember {});
+            }
+            // head of table
+            let cur = table as *const Table as *const u8;
+            // seek the offset to string-table
+            let cur = cur.offset(offset as isize);
+            let offset_to_string = *(cur as *const u32);
+            // move to string-table
+            let cur = cur.offset(offset_to_string as isize);
+            // read the length, but do not use since CStr seeks '\0'
+            let _length = *cur;
+            // skip length
+            let cur = cur.offset(4);
+            // read as CStr
+            ffi::CStr::from_ptr(cur as *const _)
+        };
+        Ok(cstr.to_str()?)
     }
 
     /// Read table and vtable on the buffer
@@ -180,6 +208,16 @@ mod tests {
         assert_eq!(vtable.offsets, [8, 0, 4, 10]);
 
         assert_eq!(table.vtable_offset, -24);
-        assert_eq!(table.field_offset, 8);
+
+        unsafe {
+            // FooBar.meal
+            assert_eq!(fb.get_sized::<i8>(0).unwrap(), &42_i8);
+            // FooBar.density (deprecated)
+            assert!(fb.get_sized::<i64>(1).is_err());
+            // FooBar.hight
+            assert_eq!(fb.get_sized::<i16>(3).unwrap(), &-8000_i16);
+        }
+        // FooBar.say
+        assert_eq!(fb.get_str(2).unwrap(), "hello");
     }
 }

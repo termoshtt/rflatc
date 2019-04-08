@@ -13,6 +13,9 @@ pub enum Error {
 
     /// Offset of table is not 32-bit aligned
     InvalidTableAlignment { ptr: *const u8 },
+
+    /// Access to deprecated member
+    DeprecatedMember {},
 }
 
 impl From<ffi::FromBytesWithNulError> for Error {
@@ -35,6 +38,7 @@ impl fmt::Display for Error {
             Error::InvalidTableAlignment { .. } => {
                 write!(f, "The offset of table is not aligned on 32-bit alignment")
             }
+            Error::DeprecatedMember { .. } => write!(f, "Invalid access to deprecated member"),
         }
     }
 }
@@ -45,6 +49,7 @@ impl std::error::Error for Error {
             Error::InvalidString(e) => Some(e),
             Error::NonUtf8(e) => Some(e),
             Error::InvalidTableAlignment { .. } => None,
+            Error::DeprecatedMember { .. } => None,
         }
     }
 }

@@ -1,0 +1,18 @@
+// Copy of flatcc/doc/eclectic.fbs
+//
+// https://github.com/dvidelabs/flatcc/blob/master/doc/eclectic.fbs
+//
+
+namespace Eclectic;
+
+enum Fruit : byte { Banana = -1, Orange = 42 }
+
+table FooBar {
+meal      : Fruit = Banana;
+density   : long (deprecated);
+say       : string;
+height    : short;
+}
+
+file_identifier "NOOB";
+root_type FooBar;

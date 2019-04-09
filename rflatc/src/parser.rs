@@ -19,6 +19,24 @@ where
         .map(|(l, a)| format!("{}{}", l, a.iter().collect::<String>()))
 }
 
+fn integer<I>() -> impl Parser<Input = I, Output = i64>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    optional(token('-'))
+        .skip(spaces())
+        .and(many1(digit()).map(|d: Vec<char>| d.into_iter().collect()))
+        .map(|(m, d)| {
+            match m {
+                Some(_) => format!("-{}", d),
+                None => d,
+            }
+            .parse()
+            .unwrap()
+        })
+}
+
 /// Use obviously sized type names
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
@@ -205,6 +223,13 @@ mod tests {
             identifier().parse("id_id_").unwrap(),
             ("id_id_".to_string(), "")
         );
+    }
+
+    #[test]
+    fn test_integer() {
+        assert_eq!(integer().parse("1234"), Ok((1234, "")));
+        assert_eq!(integer().parse("-1234"), Ok((-1234, "")));
+        assert_eq!(integer().parse("- 1234"), Ok((-1234, "")));
     }
 
     #[test]

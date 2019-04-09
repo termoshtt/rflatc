@@ -103,13 +103,13 @@ mod tests {
     fn test_namespace() {
         let stmt = read_example_fbs();
         let ns = seek_namespace(&stmt).expect("Namespace cannot find");
-        assert_eq!(vec!["example.fbs"], ns);
+        assert_eq!(vec!["Eclectic"], ns);
     }
 
     #[test]
     fn test_root_type() {
         let stmt = read_example_fbs();
         let root_type = seek_root_type(&stmt).expect("root_type cannot find");
-        assert_eq!("A".to_string(), root_type);
+        assert_eq!("FooBar".to_string(), root_type);
     }
 }

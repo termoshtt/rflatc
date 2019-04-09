@@ -8,6 +8,4 @@ rust:
   - nightly
 
 script:
-  - cargo test -v
-  - cd rflatc
-  - cargo run < test.fbs
+  - cargo test

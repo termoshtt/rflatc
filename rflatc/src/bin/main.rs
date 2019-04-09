@@ -14,6 +14,10 @@ fn main() {
         panic!("Input is empty");
     }
 
+    // Remove comment
+    let re = regex::Regex::new(r"//.*\n").unwrap();
+    let input = re.replace_all(&input, "").to_string();
+
     let (stmt, res) = fbs().parse(input.as_str()).expect("Failed to parse");
     assert_eq!(res, "");
 

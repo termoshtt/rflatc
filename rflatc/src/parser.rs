@@ -147,10 +147,17 @@ where
     identifier()
         .skip(spaces())
         .and(optional(token('=').skip(spaces()).and(integer())))
+        .skip(spaces())
         .map(|(id, val)| EnumVal {
             id,
             integer_constant: val.map(|(_, v)| v),
         })
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Enum {
+    pub id: Identifier,
+    pub values: Vec<EnumVal>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -164,6 +171,7 @@ pub enum Stmt {
     Namespace(Vec<Identifier>),
     Root(Identifier),
     Table(Table),
+    Enum(Enum),
 }
 
 /// namespace_decl = namespace ident ( . ident )* ;
@@ -223,6 +231,21 @@ where
         .map(|((_, id), fields)| Stmt::Table(Table { id, fields }))
 }
 
+/// enum_decl = ( enum ident [ : type ] | union ident ) metadata { commasep( enumval_decl ) }
+fn enum_<I>() -> impl Parser<Input = I, Output = Stmt>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    string("enum")
+        .skip(spaces())
+        .and(identifier())
+        .skip(spaces())
+        .and(paren(sep_by1(enumval(), token(',').skip(spaces()))))
+        .skip(spaces())
+        .map(|((_, id), values)| Stmt::Enum(Enum { id, values }))
+}
+
 /// Entry point of schema language
 pub fn fbs<I>() -> impl Parser<Input = I, Output = Vec<Stmt>>
 where
@@ -230,7 +253,7 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     spaces() // Drop head spaces
-        .and(many(table().or(namespace()).or(root())))
+        .and(many(table().or(enum_()).or(namespace()).or(root())))
         .map(|x| x.1)
 }
 
@@ -294,6 +317,29 @@ mod tests {
                     id: "Banana".into(),
                     integer_constant: Some(-1),
                 },
+                ""
+            ))
+        );
+    }
+
+    #[test]
+    fn test_enum() {
+        assert_eq!(
+            enum_().parse("enum Fruit { Banana = -1, Orange = 42 }"),
+            Ok((
+                Stmt::Enum(Enum {
+                    id: "Fruit".into(),
+                    values: vec![
+                        EnumVal {
+                            id: "Banana".into(),
+                            integer_constant: Some(-1)
+                        },
+                        EnumVal {
+                            id: "Orange".into(),
+                            integer_constant: Some(42)
+                        },
+                    ],
+                }),
                 ""
             ))
         );

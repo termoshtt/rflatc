@@ -157,6 +157,7 @@ where
 #[derive(Clone, Debug, PartialEq)]
 pub struct Enum {
     pub id: Identifier,
+    pub ty: Option<Type>,
     pub values: Vec<EnumVal>,
 }
 
@@ -241,9 +242,11 @@ where
         .skip(spaces())
         .and(identifier())
         .skip(spaces())
+        .and(optional(token(':').skip(spaces()).and(ty()).map(|x| x.1)))
+        .skip(spaces())
         .and(paren(sep_by1(enumval(), token(',').skip(spaces()))))
         .skip(spaces())
-        .map(|((_, id), values)| Stmt::Enum(Enum { id, values }))
+        .map(|(((_, id), ty), values)| Stmt::Enum(Enum { id, ty, values }))
 }
 
 /// Entry point of schema language
@@ -329,6 +332,27 @@ mod tests {
             Ok((
                 Stmt::Enum(Enum {
                     id: "Fruit".into(),
+                    ty: None,
+                    values: vec![
+                        EnumVal {
+                            id: "Banana".into(),
+                            integer_constant: Some(-1)
+                        },
+                        EnumVal {
+                            id: "Orange".into(),
+                            integer_constant: Some(42)
+                        },
+                    ],
+                }),
+                ""
+            ))
+        );
+        assert_eq!(
+            enum_().parse("enum Fruit : byte { Banana = -1, Orange = 42 }"),
+            Ok((
+                Stmt::Enum(Enum {
+                    id: "Fruit".into(),
+                    ty: Some(Type::Int8),
                     values: vec![
                         EnumVal {
                             id: "Banana".into(),

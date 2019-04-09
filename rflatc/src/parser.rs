@@ -5,7 +5,45 @@
 use combine::{char::*, parser::Parser, *};
 
 pub type Identifier = String;
-pub type Metadata = Option<Vec<String>>;
+
+fn paren<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: Parser<Input = I>,
+{
+    between(
+        token('{'),
+        token('}'),
+        spaces().and(f).skip(spaces()).map(|x| x.1),
+    )
+}
+
+fn brace<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: Parser<Input = I>,
+{
+    between(
+        token('('),
+        token(')'),
+        spaces().and(f).skip(spaces()).map(|x| x.1),
+    )
+}
+
+fn quoted<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: Parser<Input = I>,
+{
+    between(
+        token('"'),
+        token('"'),
+        spaces().and(f).skip(spaces()).map(|x| x.1),
+    )
+}
 
 /// ident = [a-zA-Z_][a-zA-Z0-9_]*
 fn identifier<I>() -> impl Parser<Input = I, Output = Identifier>
@@ -107,14 +145,18 @@ where
     })
 }
 
+pub type Metadata = Vec<String>;
+
 /// metadata = [ ( commasep( ident [ : single_value ] ) ) ]
 fn metadata<I>() -> impl Parser<Input = I, Output = Metadata>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    // FIXME
-    value(None)
+    brace(sep_by1(
+        string("deprecated").map(|x| x.to_string()),
+        token(',').skip(spaces()),
+    ))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -122,7 +164,7 @@ pub struct Field {
     pub id: Identifier,
     pub ty: Type,
     pub scalar: Option<Scalar>,
-    pub metadata: Metadata,
+    pub metadata: Option<Metadata>,
 }
 
 /// field_decl = ident : type [ = scalar ] metadata ;
@@ -141,7 +183,7 @@ where
             token('=').skip(spaces()).and(scalar()).map(|x| x.1),
         ))
         .skip(spaces())
-        .and(metadata())
+        .and(optional(metadata()))
         .skip(spaces())
         .skip(token(';'))
         .skip(spaces())
@@ -242,32 +284,6 @@ where
         .map(|(_, id)| Stmt::Root(id))
 }
 
-fn paren<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-    F: Parser<Input = I>,
-{
-    between(
-        token('{'),
-        token('}'),
-        spaces().and(f).skip(spaces()).map(|x| x.1),
-    )
-}
-
-fn quoted<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-    F: Parser<Input = I>,
-{
-    between(
-        token('"'),
-        token('"'),
-        spaces().and(f).skip(spaces()).map(|x| x.1),
-    )
-}
-
 fn table<I>() -> impl Parser<Input = I, Output = Stmt>
 where
     I: Stream<Item = char>,
@@ -339,6 +355,18 @@ mod tests {
     fn test_type() {
         assert_eq!(ty().parse("bool").unwrap(), (Type::Bool, ""));
         assert_eq!(ty().parse("long").unwrap(), (Type::Int64, ""));
+    }
+
+    #[test]
+    fn test_metadata() {
+        assert_eq!(
+            metadata().parse("( deprecated)"),
+            Ok((vec!["deprecated".into()], ""))
+        );
+        assert_eq!(
+            metadata().parse("( deprecated )"),
+            Ok((vec!["deprecated".into()], ""))
+        );
     }
 
     #[test]

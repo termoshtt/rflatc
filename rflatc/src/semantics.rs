@@ -81,32 +81,34 @@ impl Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::fbs;
+    use crate::{parser::fbs, remove_comment};
     use combine::Parser;
     use std::{fs, io::Read};
 
-    fn read_test_fbs() -> Vec<Stmt> {
-        let mut f = fs::File::open("test.fbs").expect("Cannot open test.fbs for semantics testing");
+    fn read_example_fbs() -> Vec<Stmt> {
+        let mut f =
+            fs::File::open("example.fbs").expect("Cannot open example.fbs for semantics testing");
         let mut input = String::new();
         f.read_to_string(&mut input)
-            .expect("Failed to load test.fbs");
+            .expect("Failed to load example.fbs");
+        let input = remove_comment(&input);
         let (stmt, res) = fbs()
             .parse(input.as_str())
-            .expect("Failed to parse test.fbs");
+            .expect("Failed to parse example.fbs");
         assert_eq!(res, "");
         stmt
     }
 
     #[test]
     fn test_namespace() {
-        let stmt = read_test_fbs();
+        let stmt = read_example_fbs();
         let ns = seek_namespace(&stmt).expect("Namespace cannot find");
-        assert_eq!(vec!["test_fbs"], ns);
+        assert_eq!(vec!["example.fbs"], ns);
     }
 
     #[test]
     fn test_root_type() {
-        let stmt = read_test_fbs();
+        let stmt = read_example_fbs();
         let root_type = seek_root_type(&stmt).expect("root_type cannot find");
         assert_eq!("A".to_string(), root_type);
     }

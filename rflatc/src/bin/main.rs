@@ -1,7 +1,7 @@
 //! FlatBuffers compiler
 
 use combine::Parser;
-use rflatc::{parser::fbs, semantics::Buffer};
+use rflatc::{parser::fbs, remove_comment, semantics::Buffer};
 
 use std::io::Read;
 
@@ -14,9 +14,7 @@ fn main() {
         panic!("Input is empty");
     }
 
-    // Remove comment
-    let re = regex::Regex::new(r"//.*\n").unwrap();
-    let input = re.replace_all(&input, "").to_string();
+    let input = remove_comment(&input);
 
     let (stmt, res) = fbs().parse(input.as_str()).expect("Failed to parse");
     assert_eq!(res, "");

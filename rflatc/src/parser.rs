@@ -5,7 +5,6 @@
 use combine::{char::*, parser::Parser, *};
 
 pub type Identifier = String;
-pub type Scalar = Option<String>;
 pub type Metadata = Option<Vec<String>>;
 
 /// ident = [a-zA-Z_][a-zA-Z0-9_]*
@@ -35,6 +34,24 @@ where
             .parse()
             .unwrap()
         })
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Scalar {
+    Identifier(Identifier),
+    Integer(i64),
+    Float(f64),
+}
+
+fn scalar<I>() -> impl Parser<Input = I, Output = Scalar>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    choice((
+        integer().map(|x| Scalar::Integer(x)),
+        identifier().map(|x| Scalar::Identifier(x)),
+    ))
 }
 
 /// Use obviously sized type names
@@ -104,7 +121,7 @@ where
 pub struct Field {
     pub id: Identifier,
     pub ty: Type,
-    pub scalar: Scalar,
+    pub scalar: Option<Scalar>,
     pub metadata: Metadata,
 }
 
@@ -120,14 +137,18 @@ where
         .skip(spaces())
         .and(ty())
         .skip(spaces())
+        .and(optional(
+            token('=').skip(spaces()).and(scalar()).map(|x| x.1),
+        ))
+        .skip(spaces())
         .and(metadata())
         .skip(spaces())
         .skip(token(';'))
         .skip(spaces())
-        .map(|((id, ty), metadata)| Field {
+        .map(|(((id, ty), scalar), metadata)| Field {
             id,
             ty,
-            scalar: None,
+            scalar: scalar,
             metadata,
         })
 }
@@ -323,8 +344,8 @@ mod tests {
     #[test]
     fn test_field() {
         assert_eq!(
-            field().parse("a : uint32;").unwrap(),
-            (
+            field().parse("a : uint32;"),
+            Ok((
                 Field {
                     id: "a".into(),
                     ty: Type::UInt32,
@@ -332,7 +353,33 @@ mod tests {
                     metadata: None
                 },
                 ""
-            )
+            ))
+        );
+
+        assert_eq!(
+            field().parse("a : uint32 = 1;"),
+            Ok((
+                Field {
+                    id: "a".into(),
+                    ty: Type::UInt32,
+                    scalar: Some(Scalar::Integer(1)),
+                    metadata: None
+                },
+                ""
+            ))
+        );
+
+        assert_eq!(
+            field().parse("a : Fruit = Banana;"),
+            Ok((
+                Field {
+                    id: "a".into(),
+                    ty: Type::UserDefined("Fruit".into()),
+                    scalar: Some(Scalar::Identifier("Banana".into())),
+                    metadata: None
+                },
+                ""
+            ))
         );
     }
 

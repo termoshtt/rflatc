@@ -3,10 +3,9 @@ sudo: false
 dist: trusty
 
 rust:
+  - stable
+  - beta
   - nightly
-
-before_script:
-  - rustup component add rustfmt
 
 script:
   - cargo test -v

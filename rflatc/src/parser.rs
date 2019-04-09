@@ -170,6 +170,7 @@ pub struct Table {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     Namespace(Vec<Identifier>),
+    FileIdentifier(Identifier),
     Root(Identifier),
     Table(Table),
     Enum(Enum),
@@ -188,6 +189,21 @@ where
         .skip(token(';'))
         .skip(spaces())
         .map(|(_, id)| Stmt::Namespace(id))
+}
+
+/// file_identifier_decl = file_identifier string_constant ;
+fn file_identifier<I>() -> impl Parser<Input = I, Output = Stmt>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    string("file_identifier")
+        .skip(spaces())
+        .and(quoted(identifier()))
+        .skip(spaces())
+        .skip(token(';'))
+        .skip(spaces())
+        .map(|(_, id)| Stmt::FileIdentifier(id))
 }
 
 /// root_decl = root_type ident ;
@@ -214,6 +230,19 @@ where
     between(
         token('{'),
         token('}'),
+        spaces().and(f).skip(spaces()).map(|x| x.1),
+    )
+}
+
+fn quoted<I, F>(f: F) -> impl Parser<Input = I, Output = F::Output>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: Parser<Input = I>,
+{
+    between(
+        token('"'),
+        token('"'),
         spaces().and(f).skip(spaces()).map(|x| x.1),
     )
 }
@@ -256,7 +285,13 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     spaces() // Drop head spaces
-        .and(many(table().or(enum_()).or(namespace()).or(root())))
+        .and(many(choice((
+            table(),
+            enum_(),
+            namespace(),
+            root(),
+            file_identifier(),
+        ))))
         .map(|x| x.1)
 }
 
@@ -374,6 +409,14 @@ mod tests {
         assert_eq!(
             namespace().parse("namespace mad.magi;").unwrap(),
             (Stmt::Namespace(vec!["mad".into(), "magi".into()]), "")
+        );
+    }
+
+    #[test]
+    fn test_file_identifier() {
+        assert_eq!(
+            file_identifier().parse(r#"file_identifier "NOOB";"#),
+            Ok((Stmt::FileIdentifier("NOOB".into()), ""))
         );
     }
 

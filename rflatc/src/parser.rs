@@ -133,6 +133,27 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct EnumVal {
+    pub id: Identifier,
+    pub integer_constant: Option<i64>,
+}
+
+/// enumval_decl = ident [ = integer_constant ]
+fn enumval<I>() -> impl Parser<Input = I, Output = EnumVal>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    identifier()
+        .skip(spaces())
+        .and(optional(token('=').skip(spaces()).and(integer())))
+        .map(|(id, val)| EnumVal {
+            id,
+            integer_constant: val.map(|(_, v)| v),
+        })
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Table {
     pub id: Identifier,
     pub fields: Vec<Field>,
@@ -251,6 +272,30 @@ mod tests {
                 },
                 ""
             )
+        );
+    }
+
+    #[test]
+    fn test_enumval() {
+        assert_eq!(
+            enumval().parse("Banana"),
+            Ok((
+                EnumVal {
+                    id: "Banana".into(),
+                    integer_constant: None,
+                },
+                ""
+            ))
+        );
+        assert_eq!(
+            enumval().parse("Banana = -1"),
+            Ok((
+                EnumVal {
+                    id: "Banana".into(),
+                    integer_constant: Some(-1),
+                },
+                ""
+            ))
         );
     }
 

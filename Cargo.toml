@@ -1,9 +1,6 @@
 [workspace]
 
 members = [
-  "flatbuffers",
-  "flatc-gen",
-  "flatc-gen-example",
   "rflatc",
   "fbs",
 ]

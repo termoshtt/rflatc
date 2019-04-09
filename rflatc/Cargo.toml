@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 combine = "3"
 failure = "0.1"
+regex = "*"

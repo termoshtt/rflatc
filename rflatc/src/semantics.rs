@@ -16,6 +16,7 @@ pub struct Entry {
 pub struct Buffer {
     pub root: Vec<Entry>,
     pub namespace: Vec<Identifier>,
+    pub file_identifier: Identifier,
 }
 
 fn seek_namespace(stmt: &[Stmt]) -> Fallible<Vec<Identifier>> {
@@ -48,6 +49,21 @@ fn seek_root_type(stmt: &[Stmt]) -> Fallible<Identifier> {
     }
 }
 
+fn seek_file_identifier(stmt: &[Stmt]) -> Fallible<Identifier> {
+    let fid: Vec<_> = stmt
+        .iter()
+        .filter_map(|st| match st {
+            Stmt::FileIdentifier(id) => Some(id),
+            _ => None,
+        })
+        .collect();
+    match fid.len() {
+        0 => bail!("No file_identifier are found"),
+        1 => Ok(fid[0].clone()),
+        _ => bail!("Duplicated file_identifier: {:?}", fid),
+    }
+}
+
 fn seek_tables(stmt: &[Stmt]) -> HashMap<Identifier, Vec<Entry>> {
     stmt.iter()
         .filter_map(|st| match st {
@@ -70,13 +86,18 @@ fn seek_tables(stmt: &[Stmt]) -> HashMap<Identifier, Vec<Entry>> {
 impl Buffer {
     pub fn new(stmt: Vec<Stmt>) -> Fallible<Self> {
         let root_type = seek_root_type(&stmt)?;
+        let file_identifier = seek_file_identifier(&stmt)?;
         let namespace = seek_namespace(&stmt)?;
         let mut tables = seek_tables(&stmt);
         let root = tables
             .remove(&root_type)
             .ok_or(format_err!("Cannot find table: {}", root_type))?;
 
-        Ok(Buffer { root, namespace })
+        Ok(Buffer {
+            root,
+            file_identifier,
+            namespace,
+        })
     }
 }
 

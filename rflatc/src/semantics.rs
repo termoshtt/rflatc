@@ -4,12 +4,14 @@ use crate::parser::*;
 use failure::*;
 use std::collections::HashMap;
 
+/// Each entry of `table`
 #[derive(Debug)]
 pub struct Entry {
     pub path: Vec<Identifier>,
     pub ty: Type,
 }
 
+/// Entire FlatBuffers definition
 #[derive(Debug)]
 pub struct Buffer {
     pub root: Vec<Entry>,
@@ -85,6 +87,7 @@ mod tests {
     use combine::Parser;
     use std::{fs, io::Read};
 
+    // Read example.fbs from flatcc example (see its header)
     fn read_example_fbs() -> Vec<Stmt> {
         let mut f =
             fs::File::open("example.fbs").expect("Cannot open example.fbs for semantics testing");

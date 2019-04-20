@@ -230,6 +230,9 @@ pub struct Table {
     pub fields: Vec<Field>,
 }
 
+/// Each statement in the FlatBuffers definition
+///
+/// The consistency of statements will be analyzed in `semantics` modules
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     Namespace(Vec<Identifier>),
